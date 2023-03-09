@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.master.backend.mapper.TestPlanMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.master.backend.entity.TestPlan">
+        <id column="id" property="id" />
+        <result column="workspace_id" property="workspaceId" />
+        <result column="report_id" property="reportId" />
+        <result column="name" property="name" />
+        <result column="description" property="description" />
+        <result column="status" property="status" />
+        <result column="stage" property="stage" />
+        <result column="principal" property="principal" />
+        <result column="test_case_match_rule" property="testCaseMatchRule" />
+        <result column="executor_match_rule" property="executorMatchRule" />
+        <result column="tags" property="tags" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="planned_start_time" property="plannedStartTime" />
+        <result column="planned_end_time" property="plannedEndTime" />
+        <result column="actual_start_time" property="actualStartTime" />
+        <result column="actual_end_time" property="actualEndTime" />
+        <result column="creator" property="creator" />
+        <result column="project_id" property="projectId" />
+        <result column="execution_times" property="executionTimes" />
+        <result column="automatic_status_update" property="automaticStatusUpdate" />
+        <result column="repeat_case" property="repeatCase" />
+        <result column="report_summary" property="reportSummary" />
+        <result column="report_config" property="reportConfig" />
+        <result column="run_mode_config" property="runModeConfig" />
+    </resultMap>
+    <select id="testPlanTestCaseCount" resultType="cn.master.backend.entity.ParamsDTO">
+        select t.plan_id as id, COUNT(*) as value from test_plan_test_case t
+        <where>
+            t.is_del = 0
+            <if test="planIds != null and planIds.size() > 0">
+                and t.plan_id IN
+                <foreach collection="planIds" item="id" separator="," open="(" close=")">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+        GROUP BY t.plan_id
+    </select>
+
+</mapper>

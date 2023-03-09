@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: admin
+    url: jdbc:mysql://127.0.0.1:3306/alexstrasza?serverTimezone=GMT%2B8&useSSL=FALSE
+jwt:
+  secret-key: Password
+  authorization: Authorization
+  token-prefix: Bearer
+  expiration-time: 10800 # 3h
+mybatis-plus:
+  type-aliases-package: cn.master.backend.entity
+  mapper-locations: classpath*:mappers/*.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+server:
+  port: 8888

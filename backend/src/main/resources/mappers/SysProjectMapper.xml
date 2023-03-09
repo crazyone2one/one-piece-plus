@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.master.backend.mapper.SysProjectMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.master.backend.entity.SysProject">
+        <id column="id" property="id" />
+        <result column="workspace_id" property="workspaceId" />
+        <result column="name" property="name" />
+        <result column="description" property="description" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="platform" property="platform" />
+        <result column="third_part_template" property="thirdPartTemplate" />
+        <result column="version_enable" property="versionEnable" />
+        <result column="issue_config" property="issueConfig" />
+        <result column="api_template_id" property="apiTemplateId" />
+        <result column="repeatable" property="repeatable" />
+        <result column="case_template_id" property="caseTemplateId" />
+        <result column="issue_template_id" property="issueTemplateId" />
+        <result column="custom_num" property="customNum" />
+        <result column="create_user" property="createUser" />
+        <result column="system_id" property="systemId" />
+        <result column="tapd_id" property="tapdId" />
+        <result column="jira_key" property="jiraKey" />
+        <result column="zentao_id" property="zentaoId" />
+    </resultMap>
+    <select id="getUserProject" resultType="cn.master.backend.entity.SysProject">
+        SELECT DISTINCT p.*
+        FROM `sys_group` g
+        JOIN sys_user_group ug ON g.id = ug.group_id
+        JOIN sys_project p ON p.id = ug.source_id
+        <where>
+            g.type = 'PROJECT'
+            AND ug.user_id = #{proRequest.userId}
+            <if test="proRequest.workspaceId != null and proRequest.workspaceId != ''">
+                AND p.workspace_id = #{proRequest.workspaceId}
+            </if>
+            <if test="proRequest.name != null and proRequest.name != ''">
+                AND p.name LIKE #{proRequest.name, jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+
+</mapper>

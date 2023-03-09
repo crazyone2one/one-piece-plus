@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.master.backend.mapper.TestCaseNodeMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.master.backend.entity.TestCaseNode">
+        <id column="id" property="id" />
+        <result column="project_id" property="projectId" />
+        <result column="name" property="name" />
+        <result column="parent_id" property="parentId" />
+        <result column="level" property="level" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="pos" property="pos" />
+        <result column="create_user" property="createUser" />
+    </resultMap>
+    <select id="getCountNodes" resultType="cn.master.backend.entity.TestCaseNodeDTO">
+        select tcn.id, count(*) as caseNum
+        from test_case
+                 left join test_case_node tcn on test_case.node_id = tcn.id
+        <include refid="queryWhereCondition"/>
+        group by tcn.id
+    </select>
+    <select id="getTestPlanCountNodes" resultType="cn.master.backend.entity.TestCaseNodeDTO">
+        select tcn.id, count(*) as caseNum, test_case.project_id
+        from test_plan_test_case
+                 inner join test_case on test_plan_test_case.case_id = test_case.id
+                 left join test_case_node tcn on test_case.node_id = tcn.id
+        <where>
+            <if test="request.name != null and request.name !=''">
+                and (test_case.name like CONCAT('%', #{request.name},'%')
+                or test_case.num like CONCAT('%',#{request.name},'%')
+                or test_case.custom_num like CONCAT('%',#{request.name},'%')
+                or test_case.tags like CONCAT('%', #{request.name},'%'))
+            </if>
+            <if test="request.id != null">
+                and test_case.id = #{request.id}
+            </if>
+            <if test="request.nodeIds != null and request.nodeIds.size() > 0">
+                and test_case.node_id in
+                <foreach collection="request.nodeIds" item="nodeId" separator="," open="(" close=")">
+                    #{nodeId}
+                </foreach>
+            </if>
+            <if test="request.status != null">
+                and test_plan_test_case.status = #{request.status}
+            </if>
+            <if test="request.executor != null">
+                and test_plan_test_case.executor = #{request.executor}
+            </if>
+            <if test="request.planId != null">
+                and test_plan_test_case.plan_id = #{request.planId}
+            </if>
+            <if test="request.method != null">
+                and test_case.method = #{request.method}
+            </if>
+            and test_case.status != 'Trash'
+        </where>
+    </select>
+    <select id="getNodeTreeByProjectIds" resultType="cn.master.backend.entity.TestCaseNodeDTO">
+        select
+        *
+        from test_case_node
+        where test_case_node.project_id
+        in
+        <foreach collection="projectIds" item="projectId" index="index" open="(" close=")" separator=",">
+            #{projectId}
+        </foreach>
+    </select>
+    <select id="getTestPlanRelateCountNodes" resultType="cn.master.backend.entity.TestCaseNodeDTO">
+        select tcn.id, count(*) as caseNum, test_case.project_id
+        from test_case
+        <if test="!request.repeatCase">
+            left join test_plan_test_case tptc on tptc.case_id = test_case.id and tptc.plan_id = #{request.planId}
+        </if>
+        left join test_case_node tcn on test_case.node_id = tcn.id
+        <include refid="queryWhereCondition"/>
+        <if test="!request.repeatCase">
+            and tptc.case_id is null
+        </if>
+        group by tcn.id
+    </select>
+    <sql id="queryWhereCondition">
+        <where>
+            and test_case.status is null or test_case.status != 'Trash'
+            <if test="request.statusIsNot != null">
+                and test_case.status != #{request.statusIsNot}
+            </if>
+
+            <if test="request.notEqStatus != null">
+                and test_case.status != #{request.notEqStatus}
+            </if>
+            <if test="request.casePublic != null and request.casePublic == true">
+                and test_case.case_public = true
+            </if>
+            <if test="request.name != null">
+                and (test_case.name like CONCAT('%', #{request.name},'%')
+                or test_case.num like CONCAT('%', #{request.name},'%')
+                or test_case.tags like CONCAT('%', #{request.name},'%')
+                or test_case.custom_num like CONCAT('%', #{request.name},'%'))
+            </if>
+            <if test="request.ids != null">
+                and test_case.id in
+                <foreach collection="request.ids" item="id" separator="," open="(" close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="request.notInIds != null and request.notInIds.size() > 0">
+                and test_case.id not in
+                <foreach collection="request.notInIds" item="id" separator="," open="(" close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="request.relevanceCreateTime >0">
+                and test_case.id in (select test_case_id from test_case_test where test_case_test.create_time >=
+                #{request.createTime})
+            </if>
+            <if test="request.createTime >0">
+                and test_case.create_time >= #{request.createTime}
+            </if>
+            <if test="request.nodeIds != null and request.nodeIds.size() > 0">
+                and test_case.node_id in
+                <foreach collection="request.nodeIds" item="nodeId" separator="," open="(" close=")">
+                    #{nodeId}
+                </foreach>
+            </if>
+            <if test="request.projectId != null">
+                and test_case.project_id = #{request.projectId}
+            </if>
+
+            <if test="request.caseCoverage == 'uncoverage' ">
+                and test_case.id not in (
+                SELECT test_case_id FROM test_case_test WHERE test_type = 'testCase' and test_id IN (select id FROM
+                api_test_case WHERE `STATUS` is null or status != 'Trash')
+                UNION
+                SELECT test_case_id FROM test_case_test WHERE test_type = 'performance' and test_id IN (select id from
+                load_test)
+                UNION
+                SELECT test_case_id FROM test_case_test WHERE test_type = 'automation' and test_id IN (select id FROM
+                api_scenario WHERE `STATUS` != 'Trash')
+                )
+            </if>
+            <if test="request.caseCoverage == 'coverage' ">
+                and test_case.id in (
+                SELECT test_case_id FROM test_case_test WHERE test_type = 'testCase' and test_id IN (select id FROM
+                api_test_case WHERE `STATUS` is null or status != 'Trash')
+                UNION
+                SELECT test_case_id FROM test_case_test WHERE test_type = 'performance' and test_id IN (select id from
+                load_test)
+                UNION
+                SELECT test_case_id FROM test_case_test WHERE test_type = 'automation' and test_id IN (select id FROM
+                api_scenario WHERE `STATUS` != 'Trash')
+                )
+            </if>
+
+        </where>
+    </sql>
+</mapper>

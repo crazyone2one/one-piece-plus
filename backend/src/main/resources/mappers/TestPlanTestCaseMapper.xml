@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.master.backend.mapper.TestPlanTestCaseMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.master.backend.entity.TestPlanTestCase">
+        <id column="id" property="id" />
+        <result column="plan_id" property="planId" />
+        <result column="case_id" property="caseId" />
+        <result column="report_id" property="reportId" />
+        <result column="executor" property="executor" />
+        <result column="status" property="status" />
+        <result column="results" property="results" />
+        <result column="issues" property="issues" />
+        <result column="remark" property="remark" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="is_del" property="isDel" />
+        <result column="actual_result" property="actualResult" />
+        <result column="create_user" property="createUser" />
+        <result column="issues_count" property="issuesCount" />
+        <result column="order" property="order" />
+    </resultMap>
+    <select id="getExecResultMapByPlanId" resultType="cn.master.backend.entity.CountMapDTO">
+        select status as `key`, count(*) as `value`
+        from test_plan_test_case
+        where plan_id = #{planId}
+          and is_del = 0
+        group by status
+    </select>
+    <select id="listTestPlanTestCase" resultType="cn.master.backend.entity.TestPlanCaseDTO">
+        select test_plan_test_case.id as id, test_case.id as caseId, test_case.name, test_case.priority,
+               test_case.type, test_case.test_id as testId,test_case.node_id, test_case.tags, test_case.maintainer,
+               test_case.custom_fields,
+               test_case.node_path, test_case.method,
+               test_case.num, test_case.custom_num,
+               test_case.project_id,
+               test_plan_test_case.executor, test_plan_test_case.status,
+               test_plan_test_case.actual_result,
+               test_plan_test_case.update_time, test_plan_test_case.create_time,
+               test_plan_test_case.issues_count as issuesCount,
+               test_plan_test_case.plan_id as planId
+#                test_case.version_id as versionId
+        from test_plan_test_case
+                 inner join test_case on test_plan_test_case.case_id = test_case.id
+        <include refid="queryWhereCondition"/>
+    </select>
+    <select id="getLastOrder" resultType="java.lang.Long">
+        select `order` from test_plan_test_case where plan_id = #{planId}
+        <if test="baseOrder != null">
+            and `order` &gt; #{baseOrder}
+        </if>
+        order by `order` desc limit 1;
+    </select>
+    <sql id="queryWhereCondition">
+        <where>
+
+            <if test="request.name != null">
+                and (test_case.name like CONCAT('%', #{request.name},'%')
+                or test_case.num like CONCAT('%',#{request.name},'%')
+                or test_case.custom_num like CONCAT('%',#{request.name},'%')
+                or test_case.tags like CONCAT('%', #{request.name},'%'))
+            </if>
+            <if test="request.id != null">
+                and test_case.id = #{request.id}
+            </if>
+            <if test="request.nodeIds != null and request.nodeIds.size() > 0">
+                and test_case.node_id in
+                <foreach collection="request.nodeIds" item="nodeId" separator="," open="(" close=")">
+                    #{nodeId}
+                </foreach>
+            </if>
+            <if test="request.status != null">
+                and test_plan_test_case.status = #{request.status}
+            </if>
+            <if test="request.executor != null">
+                and test_plan_test_case.executor = #{request.executor}
+            </if>
+            <if test="request.planId != null">
+                and test_plan_test_case.plan_id = #{request.planId}
+            </if>
+            <if test="request.method != null">
+                and test_case.method = #{request.method}
+            </if>
+
+            and test_case.status != 'Trash'
+
+        </where>
+    </sql>
+</mapper>

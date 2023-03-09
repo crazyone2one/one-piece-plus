@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.master.backend.mapper.SysGroupMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.master.backend.entity.SysGroup">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="description" property="description" />
+        <result column="system" property="system" />
+        <result column="type" property="type" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="creator" property="creator" />
+        <result column="scope_id" property="scopeId" />
+    </resultMap>
+    <select id="getGroupList" resultType="cn.master.backend.entity.SysGroup">
+        SELECT *,
+        (SELECT COUNT(DISTINCT ug.user_id) FROM sys_user_group ug JOIN sys_user su ON ug.user_id = su.id WHERE ug.group_id =
+        temp.id) AS memberSize
+        FROM (
+        SELECT g.*, w.name AS scopeName FROM `sys_group` g, sys_workspace w
+        <where>
+            and g.scope_id = w.id
+            <if test="request.types != null and request.types.size() > 0">
+                AND g.type IN
+                <foreach collection="request.types" item="type" separator="," open="(" close=")">
+                    #{type}
+                </foreach>
+            </if>
+            <if test="request.scopes != null and request.scopes.size() > 0">
+                AND g.scope_id IN
+                <foreach collection="request.scopes" item="scope" separator="," open="(" close=")">
+                    #{scope}
+                </foreach>
+            </if>
+        </where>
+        UNION DISTINCT
+        SELECT g.*, 'global' AS scopeName FROM `sys_group` g
+        <where>
+            g.scope_id = 'global'
+            <if test="request.types != null and request.types.size() > 0">
+                AND g.type IN
+                <foreach collection="request.types" item="type" separator="," open="(" close=")">
+                    #{type}
+                </foreach>
+            </if>
+        </where>
+        UNION DISTINCT
+        SELECT g.*, 'system' AS scopeName FROM `sys_group` g
+        <where>
+            g.scope_id = 'system'
+            <if test="request.types != null and request.types.size() > 0">
+                AND g.type IN
+                <foreach collection="request.types" item="type" separator="," open="(" close=")">
+                    #{type}
+                </foreach>
+            </if>
+        </where>
+        union distinct
+        select g.*, p.name as scopeName from `sys_group` g, sys_project p
+        <where>
+            and g.scope_id = p.id
+            <if test="request.types != null and request.types.size() > 0">
+                AND g.type in
+                <foreach collection="request.types" item="type" separator="," open="(" close=")">
+                    #{type}
+                </foreach>
+            </if>
+            <if test="request.scopes != null and request.scopes.size() > 0">
+                AND g.scope_id in
+                <foreach collection="request.scopes" item="scope" separator="," open="(" close=")">
+                    #{scope}
+                </foreach>
+            </if>
+        </where>
+        ) temp
+        <if test="request.name != null and request.name!=''">
+            WHERE temp.name LIKE CONCAT('%', #{request.name},'%')
+        </if>
+
+    </select>
+
+</mapper>

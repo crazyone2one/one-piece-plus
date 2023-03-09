@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.master.backend.mapper.TestCaseMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.master.backend.entity.TestCase">
+        <id column="id" property="id" />
+        <result column="node_id" property="nodeId" />
+        <result column="test_id" property="testId" />
+        <result column="node_path" property="nodePath" />
+        <result column="project_id" property="projectId" />
+        <result column="name" property="name" />
+        <result column="type" property="type" />
+        <result column="maintainer" property="maintainer" />
+        <result column="priority" property="priority" />
+        <result column="method" property="method" />
+        <result column="prerequisite" property="prerequisite" />
+        <result column="remark" property="remark" />
+        <result column="steps" property="steps" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="num" property="num" />
+        <result column="other_test_name" property="otherTestName" />
+        <result column="review_status" property="reviewStatus" />
+        <result column="tags" property="tags" />
+        <result column="demand_id" property="demandId" />
+        <result column="demand_name" property="demandName" />
+        <result column="follow_people" property="followPeople" />
+        <result column="status" property="status" />
+        <result column="create_user" property="createUser" />
+        <result column="step_description" property="stepDescription" />
+        <result column="expected_result" property="expectedResult" />
+        <result column="custom_fields" property="customFields" />
+        <result column="original_status" property="originalStatus" />
+        <result column="delete_user_id" property="deleteUserId" />
+        <result column="delete_time" property="deleteTime" />
+        <result column="order" property="order" />
+    </resultMap>
+    <select id="getLastOrder" resultType="java.lang.Long">
+        select `order` from test_case where project_id = #{projectId}
+        <if test="baseOrder != null">
+            and `order` &gt; #{baseOrder}
+        </if>
+        order by `order` desc limit 1;
+    </select>
+    <select id="getTestCaseByNotInPlan" resultType="cn.master.backend.entity.TestCaseDTO">
+        select test_case.id, test_case.name, test_case.priority, test_case.type, test_case.review_status,
+               test_case.num, test_case.custom_num, test_case.priority, test_case.tags, test_case.create_time,
+               test_case.last_execute_result,
+               test_case.update_time from test_case
+        <if test="!request.repeatCase">
+            left join test_plan_test_case as T2 on test_case.id=T2.case_id and T2.plan_id =#{request.planId}
+        </if>
+        <where>
+            <if test="request.testCaseContainIds != null and request.testCaseContainIds.size() > 0">
+                and test_case.id not in
+                <foreach collection="request.testCaseContainIds" item="id" separator="," open="(" close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="request.name != null">
+                and (test_case.name like CONCAT('%', #{request.name},'%')
+                or test_case.num like CONCAT('%', #{request.name},'%')
+                or test_case.tags like CONCAT('%', #{request.name},'%')
+                or test_case.custom_num like CONCAT('%', #{request.name},'%'))
+            </if>
+            <if test="request.projectId != null">
+                AND test_case.project_id = #{request.projectId}
+            </if>
+            <if test="request.nodeIds != null and request.nodeIds.size() > 0">
+                AND test_case.node_id IN
+                <foreach collection="request.nodeIds" open="(" close=")" separator="," item="nodeId">
+                    #{nodeId}
+                </foreach>
+            </if>
+
+        </where>
+        <if test="!request.repeatCase">
+            and T2.case_id is null
+        </if>
+        <if test="request.orders != null and request.orders.size() > 0">
+            order by
+            <foreach collection="request.orders" separator="," item="order">
+                <choose>
+                    <when test="order.prefix != null and order.prefix != ''">
+                        ${order.prefix}.`${order.name}` ${order.type}
+                    </when>
+                    <when test="order.name ==  'user_name' ">
+                        `user_id` ${order.type}
+                    </when>
+                    <otherwise>
+                        `${order.name}` ${order.type}
+                    </otherwise>
+                </choose>
+            </foreach>
+        </if>
+    </select>
+</mapper>
